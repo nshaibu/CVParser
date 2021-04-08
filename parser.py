@@ -14,7 +14,7 @@ except AttributeError:
 else:
     ssl._create_default_https_context = _create_unverified_https_context
 
-from cvparser.utils import (extract_text_from_pdf, extract_text_from_doc, extract_mobile_number,
+from cvparser.utils import (extract_text_from_pdf, extract_text_from_doc, extract_text_from_files, extract_mobile_number,
                             extract_email, extract_skills, detect_resume_sections, extract_education,
                             extract_experience_sentences, extract_opportunity_available)
 
@@ -62,7 +62,9 @@ class CVParser:
     SUPPORTED_MIMETYPES = [
         "application/msword",
         "application/pdf",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "image/jpeg",
+        "image/png",
     ]
 
     def __init__(self, file_path: str):
@@ -92,10 +94,16 @@ class CVParser:
         if file_mime not in self.SUPPORTED_MIMETYPES:
             raise FileMimeTypeError("Sorry file type not supported.")
 
-        if file_mime == "application/pdf":
-            text = " ".join([page for page in extract_text_from_pdf(self.file_path)])
-        else:
-            text = extract_text_from_doc(self.file_path)
+        try:
+            if file_mime == "application/pdf":
+                text = " ".join([page for page in extract_text_from_pdf(self.file_path)])
+            elif file_mime in ["application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                               "application/msword"]:
+                text = extract_text_from_doc(self.file_path)
+            else:
+                text = extract_text_from_files(self.file_path)
+        except Exception:
+            text = extract_text_from_files(self.file_path)
         return text
 
     @staticmethod

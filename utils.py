@@ -99,6 +99,18 @@ def extract_text_from_doc(doc_path):
     return ' '.join(text)
 
 
+def extract_text_from_files(doc_path):
+    try:
+        try:
+            import textract
+        except ImportError:
+            return ' '
+        text = textract.process(doc_path).decode('utf-8')
+        return text
+    except KeyError:
+        return ' '
+
+
 def extract_mobile_number(text):
     # phone_nums = re.findall(re.compile(r'(?:(?:\+?([1-9]|[0-9][0-9]|[0-9][0-9][0-9])\s*(?:[.-]\s*)?)?(?:\(\s*([2-9]1[02-9]|[2-9][02-8]1|[2-9][02-8][02-9])\s*\)|([0-9][1-9]|[0-9]1[02-9]|[2-9][02-8]1|[2-9][02-8][02-9]))\s*(?:[.-]\s*)?)?([2-9]1[02-9]|[2-9][02-9]1|[2-9][02-9]{2})\s*(?:[.-]\s*)?([0-9]{4})(?:\s*(?:#|x\.?|ext\.?|extension)\s*(\d+))?'), text)
     mob_num_regex = r'''(\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)
