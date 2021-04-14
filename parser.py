@@ -77,11 +77,11 @@ class CVParser:
         self.nlp = spacy.load("en_core_web_sm")
         self.custom_nlp = spacy.load(self.custom_model_path)
 
-        self.custom_doc = self.custom_nlp(self.file_content)
+        self.custom_doc = self.custom_nlp(" ".join(self.file_content.split()))
         self.custom_matcher = Matcher(self.custom_nlp.vocab)
 
         self.matcher = Matcher(self.nlp.vocab)
-        self.doc = self.nlp(self.file_content)
+        self.doc = self.nlp(" ".join(self.file_content.split()))
         self.noun_chunks = list(self.doc.noun_chunks)
         self.sections = ['name', 'email', 'mobile_number', 'skills', 'education',
                          'experience', 'opportunities']
