@@ -83,7 +83,7 @@ class CVParser:
         self.matcher = Matcher(self.nlp.vocab)
         self.doc = self.nlp(self.file_content)
         self.noun_chunks = list(self.doc.noun_chunks)
-        self.sections = ['name', 'email', 'mobile_numbers', 'skills', 'education',
+        self.sections = ['name', 'email', 'mobile_number', 'skills', 'education',
                          'experience', 'opportunities']
         self.data = OrderedDict()
 
@@ -142,8 +142,8 @@ class CVParser:
                         self.data['designation'] = custom_entities['Designation']
                     except KeyError:
                         pass
-                elif section == "mobile_numbers":
-                    self.data[section] = extract_mobile_number(self.file_content)
+                elif section == "mobile_number":
+                    self.data[section] = extract_mobile_number(self.file_content)[0:2]
                 elif section == "email":
                     self.data[section] = extract_email(self.file_content)
 
