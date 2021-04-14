@@ -111,6 +111,18 @@ def extract_text_from_files(doc_path):
         return ' '
 
 
+def extract_entities_wih_custom_model(custom_doc):
+    entities = {}
+    for ent in custom_doc.ents:
+        if ent.label_ not in entities.keys():
+            entities[ent.label_] = [ent.text]
+        else:
+            entities[ent.label_].append(ent.text)
+    for key in entities.keys():
+        entities[key] = list(set(entities[key]))
+    return entities
+
+
 def extract_mobile_number(text):
     # phone_nums = re.findall(re.compile(r'(?:(?:\+?([1-9]|[0-9][0-9]|[0-9][0-9][0-9])\s*(?:[.-]\s*)?)?(?:\(\s*([2-9]1[02-9]|[2-9][02-8]1|[2-9][02-8][02-9])\s*\)|([0-9][1-9]|[0-9]1[02-9]|[2-9][02-8]1|[2-9][02-8][02-9]))\s*(?:[.-]\s*)?)?([2-9]1[02-9]|[2-9][02-9]1|[2-9][02-9]{2})\s*(?:[.-]\s*)?([0-9]{4})(?:\s*(?:#|x\.?|ext\.?|extension)\s*(\d+))?'), text)
     mob_num_regex = r'''(\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)
@@ -197,6 +209,8 @@ def _extract_education_date(parser, doc, start, end):
     for ent in right_doc.to_json()['ents']:
         if ent['label'] == "DATE":
             right_entries.append(ent)
+            
+    # import pdb; pdb.set_trace()
 
     try:
         left_min_date = min(left_entries, key=lambda x: L2Norm(start, x['start'], end, x['end']))
@@ -211,10 +225,19 @@ def _extract_education_date(parser, doc, start, end):
     if left_min_date is None and right_min_date is None:
         return None
     elif left_min_date is None:
-        return right_min_date
+        return right_doc[right_min_date['start']:right_min_date['end']]  # right_min_date
     elif right_min_date is None:
-        return left_min_date
-    return min([right_min_date, left_min_date], key=lambda x: L2Norm(start, x['start'], end, x['end']))
+        return left_doc[left_min_date['start']:left_min_date['end']]
+
+    coord = min([right_min_date, left_min_date], key=lambda x: L2Norm(start, x['start'], end, x['end']))
+
+    _start = coord['start']
+    _end = coord['end']
+
+    if _start == right_min_date['start'] and _end ==  right_min_date['end']:
+        return right_doc[_start:_end]
+
+    return left_doc[_start:_end]
 
 
 def _extract_course(parser, doc, end_index):
@@ -265,30 +288,28 @@ def extract_education(parser, text):
                 school_dict = dict()
                 school_dict['name'] = span.text
                 school_dict['course'] = _extract_course(parser, doc, end)
-                date_entity_cord = _extract_education_date(parser, doc, start, end)
-                if date_entity_cord:
-                    sub_span = doc[date_entity_cord['start']:date_entity_cord['end']]
-                    if sub_span:
-                        school_dict['date'] = sub_span.text
+                date_entity_span = _extract_education_date(parser, doc, start, end)
+                if date_entity_span:
+                    school_dict['date'] = date_entity_span.text
 
                 if "date" not in school_dict:
                     left_span = doc[:start]
 
                     date = re.search(re.compile(DATE_RANGE_PATTERN), left_span.text.strip())
                     if date:
-                        school_dict['date'] = date.group(0)
+                        school_dict['date'] = date.group(0).strip().replace("\n", " ")
                     else:
                         right_span = doc[end:]
                         date = re.search(re.compile(DATE_RANGE_PATTERN), right_span.text.strip())
                         if date:
-                            school_dict['date'] = date.group(0)
+                            school_dict['date'] = str(date.group(0)).strip().replace("\n", " ")
                 schools_set.append(school_dict)
 
     return schools_set
 
 
 def extract_experience_sentences(resume_text):
-    print(resume_text)
+    #  print(resume_text)
     wordnet_lemmatizer = WordNetLemmatizer()
     stop_words = set(stopwords.words('english'))
 

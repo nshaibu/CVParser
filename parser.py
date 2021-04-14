@@ -16,7 +16,7 @@ else:
 
 from cvparser.utils import (extract_text_from_pdf, extract_text_from_doc, extract_text_from_files, extract_mobile_number,
                             extract_email, extract_skills, detect_resume_sections, extract_education,
-                            extract_experience_sentences, extract_opportunity_available)
+                            extract_experience_sentences, extract_opportunity_available, extract_entities_wih_custom_model)
 
 from .resources import RESOURCES
 
@@ -71,8 +71,11 @@ class CVParser:
         self.file_path = file_path
         self.file_content = self._process_file()
 
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        self.custom_model_path = os.path.join(BASE_DIR, "train/model")
+
         self.nlp = spacy.load("en_core_web_sm")
-        self.custom_nlp = spacy.load("./train/models")
+        self.custom_nlp = spacy.load(self.custom_model_path)
 
         self.custom_doc = self.custom_nlp(self.file_content)
         self.custom_matcher = Matcher(self.custom_nlp.vocab)
@@ -119,40 +122,78 @@ class CVParser:
         check_key = lambda key: check(key, self.data)
 
         detected_sections = detect_resume_sections(self)
+        custom_entities = extract_entities_wih_custom_model(self.custom_doc)
 
         for section in self.sections:
             if not check_key(section):
                 index, sect = ResumeSection.get_resume_sections(section, detected_sections)
 
                 if section == "name":
-                    self.matcher.add("USER_NAME", [RESOURCES['patterns']['NAME_PATTERN']])
-                    matches = self.matcher(self.doc)
-                    for _, start, end in matches:
-                        span = self.doc[start:end]
-                        self.data[section] = span.text
-                        break
+                    try:
+                        self.data['name'] = custom_entities['Name'][0]
+                    except (IndexError, KeyError):
+                        self.matcher.add("USER_NAME", [RESOURCES['patterns']['NAME_PATTERN']])
+                        matches = self.matcher(self.doc)
+                        for _, start, end in matches:
+                            span = self.doc[start:end]
+                            self.data[section] = span.text
+                            break
+                    try:
+                        self.data['designation'] = custom_entities['Designation']
+                    except KeyError:
+                        pass
                 elif section == "mobile_numbers":
                     self.data[section] = extract_mobile_number(self.file_content)
                 elif section == "email":
                     self.data[section] = extract_email(self.file_content)
 
-                elif section == "skills" and index >= 0:
-                    start_index = sect.end_index
-                    end_index = ResumeSection.get_end_index(index, detected_sections)
+                elif section == "skills":
+                    if index >= 0:
+                        start_index = sect.end_index
+                        end_index = ResumeSection.get_end_index(index, detected_sections)
 
-                    span = self.doc[start_index:end_index] if end_index else self.doc[start_index:]
-                    self.data[section] = extract_skills(self, span, list(span.noun_chunks))
-                elif section == "education" and index >= 0:
-                    start_index = sect.end_index
-                    end_index = ResumeSection.get_end_index(index, detected_sections)
+                        span = self.doc[start_index:end_index] if end_index else self.doc[start_index:]
+                        self.data[section] = extract_skills(self, span, list(span.noun_chunks))
+                    skill_set = set(section in self.data and self.data[section] or [])
+                    try:
+                        for skill in custom_entities['Skills']:
+                            skill = str(skill).strip().replace("\n", " ")
+                            skill_set.add(skill)
+                        self.data[section] = list(skill_set)
+                    except Exception as e:
+                        print(e)
+                        pass
+                elif section == "education":
+                    if index >= 0:
+                        start_index = sect.end_index
+                        end_index = ResumeSection.get_end_index(index, detected_sections)
 
-                    span = self.doc[start_index:end_index] if end_index else self.doc[start_index:]
-                    self.data[section] = extract_education(self, span.text)
+                        span = self.doc[start_index:end_index] if end_index else self.doc[start_index:]
+                        self.data[section] = extract_education(self, span.text)
+
+                    try:
+                        self.data['college_name'] = custom_entities['College Name']
+                    except Exception:
+                        pass
+
+                    try:
+                        self.data['graduation_year'] = custom_entities['Graduation Year']
+                    except:
+                        pass
+
+                    try:
+                        self.data['degree'] = custom_entities['Degree']
+                    except KeyError:
+                        pass
                 elif section == "experience":
                     experience = dict()
                     experience['sentences'] = extract_experience_sentences(" ".join(self.file_content.split()))
 
                     if index >= 0:
+                        pass
+                    try:
+                        experience['companies_worked_at'] = custom_entities['Companies worked at']
+                    except Exception:
                         pass
                     self.data[section] = experience
                 elif section == "opportunities":
