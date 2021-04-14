@@ -161,7 +161,6 @@ class CVParser:
                             skill_set.add(skill)
                         self.data[section] = list(skill_set)
                     except Exception as e:
-                        print(e)
                         pass
                 elif section == "education":
                     if index >= 0:
