@@ -28,3 +28,10 @@ parser = CVParser(file_path="path/to/file.[pdf|doc|docx|png|jpeg]")
 parser.parse()
 print(parser.json())
 ```
+
+### Re-training the Model
+* `cd` into the `train` folder.
+* Delete the folder `model` and the file `train.json`.
+* Copy your new training data into the `train` folder. The train data must be in `json`. This can be generated using the data annotation tool called `Dataturk`. The file containing the training data must be named `train.json`.
+* Then, start re-training the model by execute the python script in the `train` folder named `manual_training.py`.
+* Then test your new model by #usage .
