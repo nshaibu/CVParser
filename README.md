@@ -19,7 +19,7 @@ Python library for parsing resumes using natural language processing and machine
 ### Usage
 
 ```
-from cvparser import CVParser
+from cvparser.parser import CVParser
 
 parser = CVParser(file_path="path/to/file.[pdf|doc|docx|png|jpeg]")
 parser.parse()
