@@ -16,3 +16,12 @@ Python library for parsing resumes using natural language processing and machine
 
   (myvenv) $ pip install -r requirements.txt
 
+### Usage
+
+```
+from cvparser import CVParser
+
+parser = CVParser(file_path="path/to/file.[pdf|doc|docx|png|jpeg]")
+parser.parse()
+print(parser.json())
+```
